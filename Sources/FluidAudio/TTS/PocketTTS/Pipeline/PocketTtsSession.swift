@@ -223,9 +223,15 @@ public actor PocketTtsSession {
                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { continue }
 
+                let voiceSlots =
+                    voiceKVSnapshot.map { PocketTtsSynthesizer.cachePosition(of: $0) }
+                    ?? stateVoiceData?.cacheSlots ?? PocketTtsConstants.voicePromptLength
                 let chunks = PocketTtsSynthesizer.chunkTextWithMetadata(
                     trimmed, tokenizer: constants.tokenizer,
-                    maxTokens: maxTokensPerChunk, language: language
+                    maxTokens: maxTokensPerChunk,
+                    maxWholeSentenceTokens: PocketTtsSynthesizer.maxWholeSentenceTokens(
+                        voiceSlots: voiceSlots),
+                    language: language
                 )
                 Self.logger.info(
                     "Session enqueued '\(trimmed)', \(chunks.count) chunk(s)")
@@ -296,7 +302,8 @@ public actor PocketTtsSession {
         )
 
         // Generation loop
-        let maxGenLen = PocketTtsSynthesizer.estimateMaxFrames(text: text)
+        let maxGenLen = PocketTtsSynthesizer.generationStepLimit(
+            text: text, cachePosition: PocketTtsSynthesizer.cachePosition(of: kvState))
         var eosStep: Int?
         var sequence = try PocketTtsSynthesizer.createBosStartSequence(
             bosEmbedding: constants.bosEmbedding,
@@ -468,7 +475,8 @@ public actor PocketTtsSession {
         // Generation loop. BOS = the BOS latent passed as `sequence`
         // (the fused graph has no NaN-BOS protocol — same contract as the
         // rank-4 `.ane` models).
-        let maxGenLen = PocketTtsSynthesizer.estimateMaxFrames(text: text)
+        let maxGenLen = PocketTtsSynthesizer.generationStepLimit(
+            text: text, cachePosition: Int(await engine.position))
         var eosStep: Int?
         var sequence = constants.bosEmbedding
         let totalFramesAfterEos = framesAfterEos + PocketTtsConstants.extraFramesAfterDetection

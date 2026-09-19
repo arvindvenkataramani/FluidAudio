@@ -44,6 +44,13 @@ public struct PocketTtsVoiceData: Sendable {
     }
 }
 
+extension PocketTtsVoiceData {
+    /// KV cache slots the voice occupies before any text is prefilled.
+    public var cacheSlots: Int {
+        cacheSnapshot?.layers.first?.offset ?? (promptLength + 1)
+    }
+}
+
 /// Pre-baked KV cache snapshot for v2 voice packs.
 ///
 /// One `LayerCache` per LM transformer layer, in layer order. Each

@@ -47,6 +47,15 @@ public enum PocketTtsConstants {
     public static let shortTextWordThreshold: Int = 5
     /// Max text tokens per chunk — keeps total KV cache usage under kvCacheMaxLen.
     public static let maxTokensPerChunk: Int = 50
+    /// Cache slots budgeted per text token for the audio a chunk generates, used
+    /// to decide whether a sentence over `maxTokensPerChunk` still fits the KV
+    /// cache whole. Each generated 80 ms frame takes one slot. Slow speech of two
+    /// words a second is about 3.6 frames per token; the v2.1 English pack
+    /// measures 1.7 to 2.4.
+    public static let generationFramesPerTokenBudget: Int = 4
+    /// Slots held back from the whole-sentence budget for BOS and the frames
+    /// generated after EOS is detected.
+    public static let cacheReserveSlots: Int = 8
 
     // MARK: - KV cache
 
